@@ -3,7 +3,8 @@
 #include "mysql_enc_to_ruby.h"
 #include "mytime.h"
 
-double T_rb_mysql_result_fetch_row_1 = 0.0;
+double T_rb_mysql_result_fetch_row_for = 0.0;
+double T_rb_mysql_result_fetch_field = 0.0;
 
 #ifdef HAVE_RUBY_ENCODING_H
 static rb_encoding *binaryEncoding;
@@ -552,10 +553,13 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
     wrapper->fields = rb_ary_new2(wrapper->numberOfFields);
   }
 
-  double t_rb_mysql_result_fetch_row_1_start = gettimeofday_sec();
+  double t_rb_mysql_result_fetch_row_for_start = gettimeofday_sec();
 
   for (i = 0; i < wrapper->numberOfFields; i++) {
+    double t_rb_mysql_result_fetch_field_start = gettimeofday_sec();
     VALUE field = rb_mysql_result_fetch_field(self, i, args->symbolizeKeys);
+    T_rb_mysql_result_fetch_field += gettimeofday_sec() - t_rb_mysql_result_fetch_field_start;
+
     if (row[i]) {
       VALUE val = Qnil;
       enum enum_field_types type = fields[i].type;
@@ -737,7 +741,7 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
       }
     }
   }
-  T_rb_mysql_result_fetch_row_1 += gettimeofday_sec() - t_rb_mysql_result_fetch_row_1_start;
+  T_rb_mysql_result_fetch_row_for += gettimeofday_sec() - t_rb_mysql_result_fetch_row_for_start;
 
   return rowVal;
 }
@@ -878,7 +882,8 @@ static VALUE rb_mysql_result_each_(VALUE self,
       printf("T_cond3 = %f\n", T_cond3);
       printf("T_fetch_row_func = %f\n", T_fetch_row_func);
       printf("T_rb_ary_store = %f\n", T_rb_ary_store);
-      printf("T_rb_mysql_result_fetch_row_1 = %f\n", T_rb_mysql_result_fetch_row_1);
+      printf("T_rb_mysql_result_fetch_row_for = %f\n", T_rb_mysql_result_fetch_row_for);
+      printf("T_rb_mysql_result_fetch_field = %f\n", T_rb_mysql_result_fetch_field);
 
       if (wrapper->lastRowProcessed == wrapper->numberOfRows) {
         /* we don't need the mysql C dataset around anymore, peace it */
