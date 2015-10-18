@@ -1,6 +1,6 @@
 #include <mysql2_ext.h>
 
-#include "mysql_enc_to_ruby.h"
+#include "mysql_enc_to_ruby_typo.h"
 
 #ifdef HAVE_RUBY_ENCODING_H
 static rb_encoding *binaryEncoding;
