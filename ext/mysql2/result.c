@@ -7,6 +7,7 @@ double T_rb_mysql_result_fetch_row_for = 0.0;
 double T_rb_mysql_result_fetch_field = 0.0;
 double T_rb_hash_aset = 0.0;
 double T_string = 0.0;
+double T_datetime = 0.0;
 
 #ifdef HAVE_RUBY_ENCODING_H
 static rb_encoding *binaryEncoding;
@@ -647,6 +648,8 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
         }
         case MYSQL_TYPE_TIMESTAMP:  /* TIMESTAMP field */
         case MYSQL_TYPE_DATETIME: { /* DATETIME field */
+          double t_datetime = gettimeofday_sec();
+
           int tokens;
           unsigned int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0, msec = 0;
           char msec_char[7] = {'0', '0', '0', '0', '0', '0', '\0'};
@@ -700,6 +703,7 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
               }
             }
           }
+          T_datetime += gettimeofday_sec() - t_datetime;
           break;
         }
         case MYSQL_TYPE_DATE:       /* DATE field */
@@ -739,7 +743,7 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
 #ifdef HAVE_RUBY_ENCODING_H
           val = mysql2_set_field_string_encoding(val, fields[i], default_internal_enc, conn_enc);
 #endif
-          T_string += gettimeofday_sec() - t_string;
+          T_string += gettimeofday_sec() - t_string;    // rb_mysql_result_fetch_row_for() 全体の 1/35 程度を占める
           break;
         }
         }
@@ -905,6 +909,7 @@ static VALUE rb_mysql_result_each_(VALUE self,
       printf("T_rb_mysql_result_fetch_field = %f\n", T_rb_mysql_result_fetch_field);
       printf("T_rb_hash_aset = %f\n", T_rb_hash_aset);
       printf("T_string = %f\n", T_string);
+      printf("T_datetime = %f\n", T_datetime);
 
       if (wrapper->lastRowProcessed == wrapper->numberOfRows) {
         /* we don't need the mysql C dataset around anymore, peace it */
