@@ -775,8 +775,6 @@ static VALUE rb_mysql_result_each_(VALUE self,
   GET_RESULT(self);
 
   if (wrapper->is_streaming) {
-    printf("streaming!!\n");
-
     /* When streaming, we will only yield rows, not return them. */
     if (wrapper->rows == Qnil) {
       wrapper->rows = rb_ary_new();
@@ -810,11 +808,7 @@ static VALUE rb_mysql_result_each_(VALUE self,
       rb_raise(cMysql2Error, "You have already fetched all the rows for this query and streaming is true. (to reiterate you must requery).");
     }
   } else {
-    printf("else!!\n");
-
     if (args->cacheRows && wrapper->lastRowProcessed == wrapper->numberOfRows) {
-      printf("already read\n");
-
       /* we've already read the entire dataset from the C result into our */
       /* internal array. Lets hand that over to the user since it's ready to go */
       for (i = 0; i < wrapper->numberOfRows; i++) {
@@ -826,6 +820,8 @@ static VALUE rb_mysql_result_each_(VALUE self,
       unsigned long rowsProcessed = 0;
       rowsProcessed = RARRAY_LEN(wrapper->rows);
       fields = mysql_fetch_fields(wrapper->result);
+
+      double t_for_start = gettimeofday_sec();
 
       for (i = 0; i < wrapper->numberOfRows; i++) {
         VALUE row;
@@ -849,6 +845,9 @@ static VALUE rb_mysql_result_each_(VALUE self,
           rb_yield(row);
         }
       }
+      double t_for_end = gettimeofday_sec();
+      printf("t_for_end - t_for_start = %f\n", t_for_end - t_for_start);
+
       if (wrapper->lastRowProcessed == wrapper->numberOfRows) {
         /* we don't need the mysql C dataset around anymore, peace it */
         rb_mysql_result_free_result(wrapper);
