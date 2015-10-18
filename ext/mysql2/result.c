@@ -11,6 +11,8 @@ double T_datetime = 0.0;
 double T_datetime_1 = 0.0;
 double T_datetime_2 = 0.0;
 double T_datetime_3 = 0.0;
+double T_datetime_4 = 0.0;
+double T_datetime_5 = 0.0;
 
 #ifdef HAVE_RUBY_ENCODING_H
 static rb_encoding *binaryEncoding;
@@ -698,12 +700,18 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
                 }
                 T_datetime_2 += gettimeofday_sec() - t_datetime_2;
               } else {
+                // SLOW START !!!!
                 double t_datetime_3 = gettimeofday_sec();
-
                 msec = msec_char_to_uint(msec_char, sizeof(msec_char));
+                T_datetime_3 += gettimeofday_sec() - t_datetime_3;
+
+                double t_datetime_4 = gettimeofday_sec();
                 val = rb_funcall(
                     rb_cTime, args->db_timezone, 7, UINT2NUM(year), UINT2NUM(month), UINT2NUM(day), UINT2NUM(hour),
                     UINT2NUM(min), UINT2NUM(sec), UINT2NUM(msec));
+                T_datetime_4 += gettimeofday_sec() - t_datetime_4;
+
+                double t_datetime_5 = gettimeofday_sec();
                 if (!NIL_P(args->app_timezone)) {
                   if (args->app_timezone == intern_local) {
                     val = rb_funcall(val, intern_localtime, 0);
@@ -711,7 +719,9 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
                     val = rb_funcall(val, intern_utc, 0);
                   }
                 }
-                T_datetime_3 += gettimeofday_sec() - t_datetime_3;
+                T_datetime_5 += gettimeofday_sec() - t_datetime_5;
+
+                // SLOW END !!!!
               }
             }
             // SLOW END!
@@ -927,6 +937,8 @@ static VALUE rb_mysql_result_each_(VALUE self,
       printf("T_datetime_1 = %f\n", T_datetime_1);
       printf("T_datetime_2 = %f\n", T_datetime_2);
       printf("T_datetime_3 = %f\n", T_datetime_3);
+      printf("T_datetime_4 = %f\n", T_datetime_4);
+      printf("T_datetime_5 = %f\n", T_datetime_5);
 
       if (wrapper->lastRowProcessed == wrapper->numberOfRows) {
         /* we don't need the mysql C dataset around anymore, peace it */
