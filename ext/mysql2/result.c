@@ -707,10 +707,10 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
 
                 double t_datetime_4 = gettimeofday_sec();
                 // SLOW START!!!!!
-                printf("intern_local? %d\n", args->db_timezone == intern_local);
-                printf("intern_utc? %d\n", args->db_timezone == intern_utc);
+//                printf("intern_local? %d\n", args->db_timezone == intern_local);
+//                printf("intern_utc? %d\n", args->db_timezone == intern_utc);
                 val = rb_funcall(
-                    rb_cTime, args->db_timezone, 7, UINT2NUM(year), UINT2NUM(month), UINT2NUM(day), UINT2NUM(hour),
+                    rb_cTime, intern_utc, 7, UINT2NUM(year), UINT2NUM(month), UINT2NUM(day), UINT2NUM(hour),
                     UINT2NUM(min), UINT2NUM(sec), UINT2NUM(msec));
                 // SLOW END!!!!!
                 T_datetime_4 += gettimeofday_sec() - t_datetime_4;
