@@ -825,6 +825,8 @@ static VALUE rb_mysql_result_each_(VALUE self,
       double T_cond1 = 0.0;
       double T_cond2 = 0.0;
       double T_cond3 = 0.0;
+      double T_fetch_row_func = 0.0;
+      double T_rb_ary_store = 0.0;
 
       for (i = 0; i < wrapper->numberOfRows; i++) {
         VALUE row;
@@ -834,9 +836,14 @@ static VALUE rb_mysql_result_each_(VALUE self,
           row = rb_ary_entry(wrapper->rows, i);
         } else {
           // SLOW START!
+          double t_fetch_row_func_start = gettimeofday_sec();
           row = fetch_row_func(self, fields, args);
+          T_fetch_row_func += gettimeofday_sec() - t_fetch_row_func_start;
+
           if (args->cacheRows) {
-            //rb_ary_store(wrapper->rows, i, row);
+            double t_rb_ary_store_start = gettimeofday_sec();
+            rb_ary_store(wrapper->rows, i, row);
+            T_rb_ary_store += gettimeofday_sec() - t_rb_ary_store_start;
           }
           wrapper->lastRowProcessed++;
           // SLOW END!
@@ -862,6 +869,8 @@ static VALUE rb_mysql_result_each_(VALUE self,
       printf("T_cond1 = %f\n", T_cond1);
       printf("T_cond2 = %f\n", T_cond2);
       printf("T_cond3 = %f\n", T_cond3);
+      printf("T_fetch_row_func = %f\n", T_fetch_row_func);
+      printf("T_rb_ary_store = %f\n", T_rb_ary_store);
 
       if (wrapper->lastRowProcessed == wrapper->numberOfRows) {
         /* we don't need the mysql C dataset around anymore, peace it */
