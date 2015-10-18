@@ -766,7 +766,7 @@ static VALUE rb_mysql_result_each_(VALUE self,
                                    VALUE(*fetch_row_func)(VALUE, MYSQL_FIELD *fields, const result_each_args *args),
                                    const result_each_args *args)
 {
-  double t1 = gettimeofday_sec();
+  double t_start = gettimeofday_sec();
 
   unsigned long i;
   const char *errstr;
@@ -813,12 +813,16 @@ static VALUE rb_mysql_result_each_(VALUE self,
     printf("else!!\n");
 
     if (args->cacheRows && wrapper->lastRowProcessed == wrapper->numberOfRows) {
+      printf("already read\n");
+
       /* we've already read the entire dataset from the C result into our */
       /* internal array. Lets hand that over to the user since it's ready to go */
       for (i = 0; i < wrapper->numberOfRows; i++) {
         rb_yield(rb_ary_entry(wrapper->rows, i));
       }
     } else {
+      printf("not already read\n");
+
       unsigned long rowsProcessed = 0;
       rowsProcessed = RARRAY_LEN(wrapper->rows);
       fields = mysql_fetch_fields(wrapper->result);
@@ -852,8 +856,8 @@ static VALUE rb_mysql_result_each_(VALUE self,
     }
   }
 
-  double t2 = gettimeofday_sec();
-  printf("t2 - t1 = %f\n", t2 - t1);
+  double t_end = gettimeofday_sec();
+  printf("t_end - t_start = %f\n", t_end - t_start);
 
   // FIXME return Enumerator instead?
   // return rb_ary_each(wrapper->rows);
