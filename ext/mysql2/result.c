@@ -6,6 +6,7 @@
 double T_rb_mysql_result_fetch_row_for = 0.0;
 double T_rb_mysql_result_fetch_field = 0.0;
 double T_rb_hash_aset = 0.0;
+double T_string = 0.0;
 
 #ifdef HAVE_RUBY_ENCODING_H
 static rb_encoding *binaryEncoding;
@@ -583,7 +584,7 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
         case MYSQL_TYPE_BIT:        /* BIT field (MySQL 5.0.3 and up) */
           if (args->castBool && fields[i].length == 1) {
             val = *row[i] == 1 ? Qtrue : Qfalse;
-          }else{
+          } else {
             val = rb_str_new(row[i], fieldLengths[i]);
           }
           break;
@@ -603,27 +604,28 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
         case MYSQL_TYPE_NEWDECIMAL: /* Precision math DECIMAL or NUMERIC field (MySQL 5.0.3 and up) */
           if (fields[i].decimals == 0) {
             val = rb_cstr2inum(row[i], 10);
-          } else if (strtod(row[i], NULL) == 0.000000){
-            val = rb_funcall(cBigDecimal, intern_new, 1, opt_decimal_zero);
-          }else{
-            val = rb_funcall(cBigDecimal, intern_new, 1, rb_str_new(row[i], fieldLengths[i]));
-          }
+          } else
+            if (strtod(row[i], NULL) == 0.000000) {
+              val = rb_funcall(cBigDecimal, intern_new, 1, opt_decimal_zero);
+            } else {
+              val = rb_funcall(cBigDecimal, intern_new, 1, rb_str_new(row[i], fieldLengths[i]));
+            }
           break;
         case MYSQL_TYPE_FLOAT:      /* FLOAT field */
         case MYSQL_TYPE_DOUBLE: {     /* DOUBLE or REAL field */
           double column_to_double;
           column_to_double = strtod(row[i], NULL);
-          if (column_to_double == 0.000000){
+          if (column_to_double == 0.000000) {
             val = opt_float_zero;
-          }else{
+          } else {
             val = rb_float_new(column_to_double);
           }
           break;
         }
         case MYSQL_TYPE_TIME: {     /* TIME field */
           int tokens;
-          unsigned int hour=0, min=0, sec=0, msec=0;
-          char msec_char[7] = {'0','0','0','0','0','0','\0'};
+          unsigned int hour = 0, min = 0, sec = 0, msec = 0;
+          char msec_char[7] = {'0', '0', '0', '0', '0', '0', '\0'};
 
           tokens = sscanf(row[i], "%2u:%2u:%2u.%6s", &hour, &min, &sec, msec_char);
           if (tokens < 3) {
@@ -631,7 +633,9 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
             break;
           }
           msec = msec_char_to_uint(msec_char, sizeof(msec_char));
-          val = rb_funcall(rb_cTime, args->db_timezone, 7, opt_time_year, opt_time_month, opt_time_month, UINT2NUM(hour), UINT2NUM(min), UINT2NUM(sec), UINT2NUM(msec));
+          val = rb_funcall(
+              rb_cTime, args->db_timezone, 7, opt_time_year, opt_time_month, opt_time_month, UINT2NUM(hour),
+              UINT2NUM(min), UINT2NUM(sec), UINT2NUM(msec));
           if (!NIL_P(args->app_timezone)) {
             if (args->app_timezone == intern_local) {
               val = rb_funcall(val, intern_localtime, 0);
@@ -644,8 +648,8 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
         case MYSQL_TYPE_TIMESTAMP:  /* TIMESTAMP field */
         case MYSQL_TYPE_DATETIME: { /* DATETIME field */
           int tokens;
-          unsigned int year=0, month=0, day=0, hour=0, min=0, sec=0, msec=0;
-          char msec_char[7] = {'0','0','0','0','0','0','\0'};
+          unsigned int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0, msec = 0;
+          char msec_char[7] = {'0', '0', '0', '0', '0', '0', '\0'};
           uint64_t seconds;
 
           tokens = sscanf(row[i], "%4u-%2u-%2u %2u:%2u:%2u.%6s", &year, &month, &day, &hour, &min, &sec, msec_char);
@@ -653,7 +657,8 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
             val = Qnil;
             break;
           }
-          seconds = (year*31557600ULL) + (month*2592000ULL) + (day*86400ULL) + (hour*3600ULL) + (min*60ULL) + sec;
+          seconds =
+              (year * 31557600ULL) + (month * 2592000ULL) + (day * 86400ULL) + (hour * 3600ULL) + (min * 60ULL) + sec;
 
           if (seconds == 0) {
             val = Qnil;
@@ -662,12 +667,16 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
               rb_raise(cMysql2Error, "Invalid date in field '%.*s': %s", fields[i].name_length, fields[i].name, row[i]);
               val = Qnil;
             } else {
-              if (seconds < MYSQL2_MIN_TIME || seconds > MYSQL2_MAX_TIME) { /* use DateTime for larger date range, does not support microseconds */
+              if (seconds < MYSQL2_MIN_TIME ||
+                  seconds > MYSQL2_MAX_TIME) { /* use DateTime for larger date range, does not support microseconds */
                 VALUE offset = INT2NUM(0);
                 if (args->db_timezone == intern_local) {
                   offset = rb_funcall(cMysql2Client, intern_local_offset, 0);
                 }
-                val = rb_funcall(cDateTime, intern_civil, 7, UINT2NUM(year), UINT2NUM(month), UINT2NUM(day), UINT2NUM(hour), UINT2NUM(min), UINT2NUM(sec), offset);
+                val = rb_funcall(
+                    cDateTime, intern_civil, 7, UINT2NUM(year), UINT2NUM(month), UINT2NUM(day), UINT2NUM(hour),
+                    UINT2NUM(min), UINT2NUM(sec), offset
+                );
                 if (!NIL_P(args->app_timezone)) {
                   if (args->app_timezone == intern_local) {
                     offset = rb_funcall(cMysql2Client, intern_local_offset, 0);
@@ -678,7 +687,9 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
                 }
               } else {
                 msec = msec_char_to_uint(msec_char, sizeof(msec_char));
-                val = rb_funcall(rb_cTime, args->db_timezone, 7, UINT2NUM(year), UINT2NUM(month), UINT2NUM(day), UINT2NUM(hour), UINT2NUM(min), UINT2NUM(sec), UINT2NUM(msec));
+                val = rb_funcall(
+                    rb_cTime, args->db_timezone, 7, UINT2NUM(year), UINT2NUM(month), UINT2NUM(day), UINT2NUM(hour),
+                    UINT2NUM(min), UINT2NUM(sec), UINT2NUM(msec));
                 if (!NIL_P(args->app_timezone)) {
                   if (args->app_timezone == intern_local) {
                     val = rb_funcall(val, intern_localtime, 0);
@@ -694,13 +705,13 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
         case MYSQL_TYPE_DATE:       /* DATE field */
         case MYSQL_TYPE_NEWDATE: {  /* Newer const used > 5.0 */
           int tokens;
-          unsigned int year=0, month=0, day=0;
+          unsigned int year = 0, month = 0, day = 0;
           tokens = sscanf(row[i], "%4u-%2u-%2u", &year, &month, &day);
           if (tokens < 3) {
             val = Qnil;
             break;
           }
-          if (year+month+day == 0) {
+          if (year + month + day == 0) {
             val = Qnil;
           } else {
             if (month < 1 || day < 1) {
@@ -722,19 +733,22 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
         case MYSQL_TYPE_SET:        /* SET field */
         case MYSQL_TYPE_ENUM:       /* ENUM field */
         case MYSQL_TYPE_GEOMETRY:   /* Spatial fielda */
-        default:
+        default: {
+          double t_string = gettimeofday_sec();
           val = rb_str_new(row[i], fieldLengths[i]);
 #ifdef HAVE_RUBY_ENCODING_H
           val = mysql2_set_field_string_encoding(val, fields[i], default_internal_enc, conn_enc);
 #endif
+          T_string += gettimeofday_sec() - t_string;
           break;
+        }
         }
       }
       if (args->asArray) {
         rb_ary_push(rowVal, val);
       } else {
         double t = gettimeofday_sec();
-        rb_hash_aset(rowVal, field, val);
+        rb_hash_aset(rowVal, field, val);  // rb_mysql_result_fetch_row_for() 全体の 1/7 程度を占める
         T_rb_hash_aset += gettimeofday_sec() - t;
       }
     } else {
@@ -890,6 +904,7 @@ static VALUE rb_mysql_result_each_(VALUE self,
       printf("T_rb_mysql_result_fetch_row_for = %f\n", T_rb_mysql_result_fetch_row_for);
       printf("T_rb_mysql_result_fetch_field = %f\n", T_rb_mysql_result_fetch_field);
       printf("T_rb_hash_aset = %f\n", T_rb_hash_aset);
+      printf("T_string = %f\n", T_string);
 
       if (wrapper->lastRowProcessed == wrapper->numberOfRows) {
         /* we don't need the mysql C dataset around anymore, peace it */
