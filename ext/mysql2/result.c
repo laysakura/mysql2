@@ -8,6 +8,7 @@ double T_rb_mysql_result_fetch_field = 0.0;
 double T_rb_hash_aset = 0.0;
 double T_string = 0.0;
 double T_datetime = 0.0;
+double T_datetime_1 = 0.0;
 
 #ifdef HAVE_RUBY_ENCODING_H
 static rb_encoding *binaryEncoding;
@@ -666,6 +667,8 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
           if (seconds == 0) {
             val = Qnil;
           } else {
+            double t_datetime_1 = gettimeofday_sec();
+
             if (month < 1 || day < 1) {
               rb_raise(cMysql2Error, "Invalid date in field '%.*s': %s", fields[i].name_length, fields[i].name, row[i]);
               val = Qnil;
@@ -702,8 +705,9 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
                 }
               }
             }
+            T_datetime_1 += gettimeofday_sec() - t_datetime;
           }
-          T_datetime += gettimeofday_sec() - t_datetime;
+          T_datetime += gettimeofday_sec() - t_datetime;  // SLOW!! rb_mysql_result_fetch_row_for() 全体の 27/42 程度を占める
           break;
         }
         case MYSQL_TYPE_DATE:       /* DATE field */
@@ -910,6 +914,7 @@ static VALUE rb_mysql_result_each_(VALUE self,
       printf("T_rb_hash_aset = %f\n", T_rb_hash_aset);
       printf("T_string = %f\n", T_string);
       printf("T_datetime = %f\n", T_datetime);
+      printf("T_datetime_1 = %f\n", T_datetime_1);
 
       if (wrapper->lastRowProcessed == wrapper->numberOfRows) {
         /* we don't need the mysql C dataset around anymore, peace it */
