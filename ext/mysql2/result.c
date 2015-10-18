@@ -3,6 +3,8 @@
 #include "mysql_enc_to_ruby.h"
 #include "mytime.h"
 
+double T_rb_mysql_result_fetch_row_1 = 0.0;
+
 #ifdef HAVE_RUBY_ENCODING_H
 static rb_encoding *binaryEncoding;
 #endif
@@ -513,7 +515,8 @@ static VALUE rb_mysql_result_fetch_row_stmt(VALUE self, MYSQL_FIELD * fields, co
   return rowVal;
 }
 
-
+// この関数が行数分(10000回)呼ばれていて、合計で0.384sec。
+// 1回あたり38.4usec。
 static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const result_each_args *args)
 {
   VALUE rowVal;
@@ -548,6 +551,8 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
     wrapper->numberOfFields = mysql_num_fields(wrapper->result);
     wrapper->fields = rb_ary_new2(wrapper->numberOfFields);
   }
+
+  double t_rb_mysql_result_fetch_row_1_start = gettimeofday_sec();
 
   for (i = 0; i < wrapper->numberOfFields; i++) {
     VALUE field = rb_mysql_result_fetch_field(self, i, args->symbolizeKeys);
@@ -732,6 +737,8 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
       }
     }
   }
+  T_rb_mysql_result_fetch_row_1 += gettimeofday_sec() - t_rb_mysql_result_fetch_row_1_start;
+
   return rowVal;
 }
 
@@ -871,6 +878,7 @@ static VALUE rb_mysql_result_each_(VALUE self,
       printf("T_cond3 = %f\n", T_cond3);
       printf("T_fetch_row_func = %f\n", T_fetch_row_func);
       printf("T_rb_ary_store = %f\n", T_rb_ary_store);
+      printf("T_rb_mysql_result_fetch_row_1 = %f\n", T_rb_mysql_result_fetch_row_1);
 
       if (wrapper->lastRowProcessed == wrapper->numberOfRows) {
         /* we don't need the mysql C dataset around anymore, peace it */
