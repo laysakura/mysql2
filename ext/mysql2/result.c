@@ -1,6 +1,7 @@
 #include <mysql2_ext.h>
 
 #include "mysql_enc_to_ruby.h"
+#include "mytime.h"
 
 #ifdef HAVE_RUBY_ENCODING_H
 static rb_encoding *binaryEncoding;
@@ -851,14 +852,14 @@ static VALUE rb_mysql_result_each_(VALUE self,
 }
 
 static VALUE rb_mysql_result_each(int argc, VALUE * argv, VALUE self) {
+  double t1 = gettimeofday_sec();
+
   result_each_args args;
   VALUE defaults, opts, block, (*fetch_row_func)(VALUE, MYSQL_FIELD *fields, const result_each_args *args);
   ID db_timezone, app_timezone, dbTz, appTz;
   int symbolizeKeys, asArray, castBool, cacheRows, cast;
 
   GET_RESULT(self);
-
-  printf("hello debug world!!\n");
 
   defaults = rb_iv_get(self, "@query_options");
   Check_Type(defaults, T_HASH);
@@ -932,7 +933,15 @@ static VALUE rb_mysql_result_each(int argc, VALUE * argv, VALUE self) {
     fetch_row_func = rb_mysql_result_fetch_row;
   }
 
-  return rb_mysql_result_each_(self, fetch_row_func, &args);
+  double t2 = gettimeofday_sec();
+
+  VALUE ret = rb_mysql_result_each_(self, fetch_row_func, &args);
+
+  double t3 = gettimeofday_sec();
+
+  printf("t3 - t1 = %f , t2 - t1 = %f\n", t3 - t1, t2 - t1);
+
+  return ret;
 }
 
 static VALUE rb_mysql_result_count(VALUE self) {
