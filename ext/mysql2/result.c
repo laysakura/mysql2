@@ -835,9 +835,10 @@ static VALUE rb_mysql_result_each_(VALUE self,
         if (args->cacheRows && i < rowsProcessed) {
           row = rb_ary_entry(wrapper->rows, i);
         } else {
-          // SLOW START!
           double t_fetch_row_func_start = gettimeofday_sec();
+          // SLOW START!
           row = fetch_row_func(self, fields, args);
+          // SLOW END!
           T_fetch_row_func += gettimeofday_sec() - t_fetch_row_func_start;
 
           if (args->cacheRows) {
@@ -846,7 +847,6 @@ static VALUE rb_mysql_result_each_(VALUE self,
             T_rb_ary_store += gettimeofday_sec() - t_rb_ary_store_start;
           }
           wrapper->lastRowProcessed++;
-          // SLOW END!
         }
         T_cond1 += gettimeofday_sec() - t_cond1_start;
 
@@ -962,8 +962,10 @@ static VALUE rb_mysql_result_each(int argc, VALUE * argv, VALUE self) {
   args.block_given = block;
 
   if (wrapper->stmt_wrapper) {
+    printf("stmt_wrapper\n");
     fetch_row_func = rb_mysql_result_fetch_row_stmt;
   } else {
+    printf("not stmt_wrapper\n");
     fetch_row_func = rb_mysql_result_fetch_row;
   }
 
