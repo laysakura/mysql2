@@ -9,6 +9,8 @@ double T_rb_hash_aset = 0.0;
 double T_string = 0.0;
 double T_datetime = 0.0;
 double T_datetime_1 = 0.0;
+double T_datetime_2 = 0.0;
+double T_datetime_3 = 0.0;
 
 #ifdef HAVE_RUBY_ENCODING_H
 static rb_encoding *binaryEncoding;
@@ -669,12 +671,15 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
           } else {
             double t_datetime_1 = gettimeofday_sec();
 
+            // SLOW START!!!
             if (month < 1 || day < 1) {
               rb_raise(cMysql2Error, "Invalid date in field '%.*s': %s", fields[i].name_length, fields[i].name, row[i]);
               val = Qnil;
             } else {
               if (seconds < MYSQL2_MIN_TIME ||
                   seconds > MYSQL2_MAX_TIME) { /* use DateTime for larger date range, does not support microseconds */
+                double t_datetime_2 = gettimeofday_sec();
+
                 VALUE offset = INT2NUM(0);
                 if (args->db_timezone == intern_local) {
                   offset = rb_funcall(cMysql2Client, intern_local_offset, 0);
@@ -691,7 +696,10 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
                     val = rb_funcall(val, intern_new_offset, 1, opt_utc_offset);
                   }
                 }
+                T_datetime_2 += gettimeofday_sec() - t_datetime_2;
               } else {
+                double t_datetime_3 = gettimeofday_sec();
+
                 msec = msec_char_to_uint(msec_char, sizeof(msec_char));
                 val = rb_funcall(
                     rb_cTime, args->db_timezone, 7, UINT2NUM(year), UINT2NUM(month), UINT2NUM(day), UINT2NUM(hour),
@@ -703,8 +711,10 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
                     val = rb_funcall(val, intern_utc, 0);
                   }
                 }
+                T_datetime_3 += gettimeofday_sec() - t_datetime_3;
               }
             }
+            // SLOW END!
             T_datetime_1 += gettimeofday_sec() - t_datetime;
           }
           T_datetime += gettimeofday_sec() - t_datetime;  // SLOW!! rb_mysql_result_fetch_row_for() 全体の 27/42 程度を占める
@@ -915,6 +925,8 @@ static VALUE rb_mysql_result_each_(VALUE self,
       printf("T_string = %f\n", T_string);
       printf("T_datetime = %f\n", T_datetime);
       printf("T_datetime_1 = %f\n", T_datetime_1);
+      printf("T_datetime_2 = %f\n", T_datetime_2);
+      printf("T_datetime_3 = %f\n", T_datetime_3);
 
       if (wrapper->lastRowProcessed == wrapper->numberOfRows) {
         /* we don't need the mysql C dataset around anymore, peace it */
