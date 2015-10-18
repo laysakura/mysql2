@@ -830,15 +830,19 @@ static VALUE rb_mysql_result_each_(VALUE self,
         VALUE row;
 
         double t_cond1_start = gettimeofday_sec();
+        // SLOW START!
         if (args->cacheRows && i < rowsProcessed) {
+          printf("if\n");
           row = rb_ary_entry(wrapper->rows, i);
         } else {
+          printf("else\n");
           row = fetch_row_func(self, fields, args);
           if (args->cacheRows) {
             rb_ary_store(wrapper->rows, i, row);
           }
           wrapper->lastRowProcessed++;
         }
+        // SLOW END!
         T_cond1 += gettimeofday_sec() - t_cond1_start;
 
         double t_cond2_start = gettimeofday_sec();
