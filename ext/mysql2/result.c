@@ -766,6 +766,8 @@ static VALUE rb_mysql_result_each_(VALUE self,
                                    VALUE(*fetch_row_func)(VALUE, MYSQL_FIELD *fields, const result_each_args *args),
                                    const result_each_args *args)
 {
+  double t1 = gettimeofday_sec();
+
   unsigned long i;
   const char *errstr;
   MYSQL_FIELD *fields = NULL;
@@ -773,6 +775,8 @@ static VALUE rb_mysql_result_each_(VALUE self,
   GET_RESULT(self);
 
   if (wrapper->is_streaming) {
+    printf("streaming!!\n");
+
     /* When streaming, we will only yield rows, not return them. */
     if (wrapper->rows == Qnil) {
       wrapper->rows = rb_ary_new();
@@ -806,6 +810,8 @@ static VALUE rb_mysql_result_each_(VALUE self,
       rb_raise(cMysql2Error, "You have already fetched all the rows for this query and streaming is true. (to reiterate you must requery).");
     }
   } else {
+    printf("else!!\n");
+
     if (args->cacheRows && wrapper->lastRowProcessed == wrapper->numberOfRows) {
       /* we've already read the entire dataset from the C result into our */
       /* internal array. Lets hand that over to the user since it's ready to go */
@@ -846,14 +852,15 @@ static VALUE rb_mysql_result_each_(VALUE self,
     }
   }
 
+  double t2 = gettimeofday_sec();
+  printf("t2 - t1 = %f\n", t2 - t1);
+
   // FIXME return Enumerator instead?
   // return rb_ary_each(wrapper->rows);
   return wrapper->rows;
 }
 
 static VALUE rb_mysql_result_each(int argc, VALUE * argv, VALUE self) {
-  double t1 = gettimeofday_sec();
-
   result_each_args args;
   VALUE defaults, opts, block, (*fetch_row_func)(VALUE, MYSQL_FIELD *fields, const result_each_args *args);
   ID db_timezone, app_timezone, dbTz, appTz;
@@ -933,15 +940,7 @@ static VALUE rb_mysql_result_each(int argc, VALUE * argv, VALUE self) {
     fetch_row_func = rb_mysql_result_fetch_row;
   }
 
-  double t2 = gettimeofday_sec();
-
-  VALUE ret = rb_mysql_result_each_(self, fetch_row_func, &args);
-
-  double t3 = gettimeofday_sec();
-
-  printf("t3 - t1 = %f , t2 - t1 = %f\n", t3 - t1, t2 - t1);
-
-  return ret;
+  return rb_mysql_result_each_(self, fetch_row_func, &args);
 }
 
 static VALUE rb_mysql_result_count(VALUE self) {
