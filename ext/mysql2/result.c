@@ -836,8 +836,7 @@ static VALUE rb_mysql_result_each_(VALUE self,
           // SLOW START!
           row = fetch_row_func(self, fields, args);
           if (args->cacheRows) {
-            printf("cacheRows\n");
-            rb_ary_store(wrapper->rows, i, row);
+            //rb_ary_store(wrapper->rows, i, row);
           }
           wrapper->lastRowProcessed++;
           // SLOW END!
