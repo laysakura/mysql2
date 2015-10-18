@@ -706,7 +706,7 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
                 T_datetime_3 += gettimeofday_sec() - t_datetime_3;
 
                 double t_datetime_4 = gettimeofday_sec();
-                printf("%s\n", args->db_timezone);
+                //printf("%s\n", args->db_timezone);
                 // SLOW START!!!!!
                 val = rb_funcall(
                     rb_cTime, args->db_timezone, 7, UINT2NUM(year), UINT2NUM(month), UINT2NUM(day), UINT2NUM(hour),
