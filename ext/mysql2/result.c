@@ -1,6 +1,6 @@
 #include <mysql2_ext.h>
 
-#include "mysql_enc_to_ruby_typo.h"
+#include "mysql_enc_to_ruby.h"
 
 #ifdef HAVE_RUBY_ENCODING_H
 static rb_encoding *binaryEncoding;
@@ -857,6 +857,8 @@ static VALUE rb_mysql_result_each(int argc, VALUE * argv, VALUE self) {
   int symbolizeKeys, asArray, castBool, cacheRows, cast;
 
   GET_RESULT(self);
+
+  printf("hello debug world!!\n");
 
   defaults = rb_iv_get(self, "@query_options");
   Check_Type(defaults, T_HASH);
