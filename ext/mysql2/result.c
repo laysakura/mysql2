@@ -822,9 +822,14 @@ static VALUE rb_mysql_result_each_(VALUE self,
       fields = mysql_fetch_fields(wrapper->result);
 
       double t_for_start = gettimeofday_sec();
+      double T_cond1 = 0.0;
+      double T_cond2 = 0.0;
+      double T_cond3 = 0.0;
 
       for (i = 0; i < wrapper->numberOfRows; i++) {
         VALUE row;
+
+        double t_cond1_start = gettimeofday_sec();
         if (args->cacheRows && i < rowsProcessed) {
           row = rb_ary_entry(wrapper->rows, i);
         } else {
@@ -834,19 +839,27 @@ static VALUE rb_mysql_result_each_(VALUE self,
           }
           wrapper->lastRowProcessed++;
         }
+        T_cond1 += gettimeofday_sec() - t_cond1_start;
 
+        double t_cond2_start = gettimeofday_sec();
         if (row == Qnil) {
           /* we don't need the mysql C dataset around anymore, peace it */
           rb_mysql_result_free_result(wrapper);
           return Qnil;
         }
+        T_cond2 += gettimeofday_sec() - t_cond2_start;
 
+        double t_cond3_start = gettimeofday_sec();
         if (args->block_given != Qnil) {
           rb_yield(row);
         }
+        T_cond3 += gettimeofday_sec() - t_cond3_start;
       }
       double t_for_end = gettimeofday_sec();
       printf("t_for_end - t_for_start = %f\n", t_for_end - t_for_start);
+      printf("T_cond1 = %f\n", T_cond1);
+      printf("T_cond2 = %f\n", T_cond2);
+      printf("T_cond3 = %f\n", T_cond3);
 
       if (wrapper->lastRowProcessed == wrapper->numberOfRows) {
         /* we don't need the mysql C dataset around anymore, peace it */
