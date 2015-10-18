@@ -5,6 +5,7 @@
 
 double T_rb_mysql_result_fetch_row_for = 0.0;
 double T_rb_mysql_result_fetch_field = 0.0;
+double T_rb_hash_aset = 0.0;
 
 #ifdef HAVE_RUBY_ENCODING_H
 static rb_encoding *binaryEncoding;
@@ -555,9 +556,10 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
 
   double t_rb_mysql_result_fetch_row_for_start = gettimeofday_sec();
 
+  // SLOW START!
   for (i = 0; i < wrapper->numberOfFields; i++) {
     double t_rb_mysql_result_fetch_field_start = gettimeofday_sec();
-    VALUE field = rb_mysql_result_fetch_field(self, i, args->symbolizeKeys);
+    VALUE field = rb_mysql_result_fetch_field(self, i, args->symbolizeKeys);  // ここは遅くない。
     T_rb_mysql_result_fetch_field += gettimeofday_sec() - t_rb_mysql_result_fetch_field_start;
 
     if (row[i]) {
@@ -731,7 +733,9 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
       if (args->asArray) {
         rb_ary_push(rowVal, val);
       } else {
+        double t = gettimeofday_sec();
         rb_hash_aset(rowVal, field, val);
+        T_rb_hash_aset += gettimeofday_sec() - t;
       }
     } else {
       if (args->asArray) {
@@ -741,6 +745,7 @@ static VALUE rb_mysql_result_fetch_row(VALUE self, MYSQL_FIELD * fields, const r
       }
     }
   }
+  // SLOW END!
   T_rb_mysql_result_fetch_row_for += gettimeofday_sec() - t_rb_mysql_result_fetch_row_for_start;
 
   return rowVal;
@@ -884,6 +889,7 @@ static VALUE rb_mysql_result_each_(VALUE self,
       printf("T_rb_ary_store = %f\n", T_rb_ary_store);
       printf("T_rb_mysql_result_fetch_row_for = %f\n", T_rb_mysql_result_fetch_row_for);
       printf("T_rb_mysql_result_fetch_field = %f\n", T_rb_mysql_result_fetch_field);
+      printf("T_rb_hash_aset = %f\n", T_rb_hash_aset);
 
       if (wrapper->lastRowProcessed == wrapper->numberOfRows) {
         /* we don't need the mysql C dataset around anymore, peace it */
